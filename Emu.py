@@ -1,35 +1,45 @@
-import shlex, tkinter as tk
+import tkinter as tk
+import shlex, getpass, socket
 
-app = tk.Tk()
-app.title("Эмулятор - [user@host]")  # Можно заменить на реальные данные позже
+u = getpass.getuser()
+h = socket.gethostname()
+p = f"{u}@{h}$ "
 
-outbox = tk.Text(app, height=20)
-outbox.pack(fill="both", expand=True)
-entry = tk.Entry(app)
-entry.pack(fill="x")
+w = tk.Tk()
+w.title(f"Эмулятор - [{u}@{h}]")
 
-def submit(event=None):
-    line = entry.get()
-    entry.delete(0, "end")
-    if not line.strip():
-        return
-    outbox.insert("end", f"$ {line}\n")
+t = tk.Text(w, wrap="word", state="disabled")
+t.pack(fill="both", expand=True)
+e = tk.Entry(w)
+e.pack(fill="x")
+e.focus()
+
+def out(s):
+    t.config(state="normal")
+    t.insert("end", s)
+    t.see("end")
+    t.config(state="disabled")
+
+def run(event=None):
+    s = e.get()
+    e.delete(0, "end")
+    out(p + s + "\n")
     try:
-        tokens = shlex.split(line)
-    except:
-        outbox.insert("end", "parse error\n")
+        x = shlex.split(s)
+    except ValueError as err:
+        out(f"parse error: {err}\n")
         return
-    if not tokens:
+    if not x:
         return
-    cmd, args = tokens[0], tokens[1:]
-    if cmd == "exit":
-        app.destroy()
-        return
-    if cmd in ("ls", "cd"):
-        outbox.insert("end", f"{cmd} {args}\n")
+    c, a = x[0], x[1:]
+    if c == "exit":
+        w.destroy()
+    elif c in ("ls", "cd"):
+        out(str([c] + a) + "\n")
     else:
-        outbox.insert("end", f"{cmd}: command not found\n")
-    outbox.see("end")
+        out(f"{c}: command not found\n")
 
-entry.bind("<Return>", submit)
-app.mainloop()
+e.bind("<Return>", run)
+out(u, h, p)
+
+w.mainloop()
